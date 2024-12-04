@@ -25,7 +25,7 @@ level = 1
 
 # Biến dùng để người chơi có thể nâng cấp
 speed_bullet = 0
-dame_bullet = 10000
+dame_bullet = 0
 health_bonus = 0
 coin_player = 0
 health_tile = 10
@@ -141,20 +141,37 @@ restart_btn = button.Button(SCREEN_WIDTH // 2 + 20, SCREEN_HEIGHT // 2 - 100, re
 
 
 '''================================== Các loại âm thanh trong game =================================='''
+# Tiếng nhận tiền
 coin_recieved = pygame.mixer.Sound('Audio/coin.wav')
 coin_recieved.set_volume(0.3)
+# Tiếng nhảy
 jump_up = pygame.mixer.Sound('Audio/jump.wav')
 jump_up.set_volume(0.3)
+# Tiếng bắn súng
 shooted = pygame.mixer.Sound('Audio/shot.wav')
 shooted.set_volume(0.3)
+# Tiếng đấm
 punch_audio = pygame.mixer.Sound('Audio/punch.wav')
 punch_audio.set_volume(0.3)
-hurt_audio = pygame.mixer.Sound('Audio/hurt.wav')
-hurt_audio.set_volume(0.3)
+# Tiếng dao
+slash_audio = pygame.mixer.Sound('Audio/slash.wav')
+slash_audio.set_volume(0.3)
+# Tiếng skeleton die
+skeleton_hurt_audio = pygame.mixer.Sound('Audio/skeletondie.wav')
+skeleton_hurt_audio.set_volume(0.3)
+# Tiếng demon die
+demon_hurt_audio = pygame.mixer.Sound('Audio/demondie.wav')
+demon_hurt_audio.set_volume(0.3)
+# Tiếng boss die
+boss_hurt_audio = pygame.mixer.Sound('Audio/bossdie.wav')
+boss_hurt_audio.set_volume(0.3)
+# Tiếng thua game
 lose_game_audio = pygame.mixer.Sound('Audio/game_over.wav')
 lose_game_audio.set_volume(0.3)
+# Tiếng thắng game
 win_game_audio = pygame.mixer.Sound('Audio/win.wav')
 win_game_audio.set_volume(0.3)
+# Tiếng click chuột
 mouse_click_audio = pygame.mixer.Sound('Audio/mouse_click.wav')
 play_audio = False # Dùng để phát tiếng khi click
 lose_game_audio_played = False # Dùng để check khi thua
@@ -737,10 +754,16 @@ def reset_data():
     enemy_group.empty()
     level_complete_group.empty()
     trap_group.empty()
+    coin_player = 0
 
 def draw_enemy(player):
     for enemy in enemy_group:
         enemy.draw(player, screen, screen_scroll, world)
+        if enemy.attack == True and enemy.dame_cooldown == 90:
+            if enemy.type == 'Skeleton' or enemy.type == 'Demon':
+                slash_audio.play()
+            else:
+                punch_audio.play()
 
 def draw_decoration():
     for decoration in decoration_group:
@@ -777,7 +800,7 @@ def bullet_enemy(player):
                 if enemy.health > 0:
                     enemy.health -= player.dame + dame_bullet
                     if enemy.health <= 0:
-                            hurt_audio.play()
+                            skeleton_hurt_audio.play()
                     if random.randint(1, 3) == 1:
                         enemy.hurt = True
                     player.bullets.remove(bullet)
@@ -814,9 +837,6 @@ def coin_collision(player):
             coin_recieved.play()
 
 def shop_collision(player):
-    """
-    Hiển thị giao diện cửa hàng và xử lý va chạm giữa người chơi và cửa hàng.
-    """
     for shop in shop_group:
         if shop.rect.colliderect(player.coin_collision):
             # Hiển thị bảng cửa hàng
@@ -1040,7 +1060,7 @@ while running:
                     win_game_audio_played = False
                     lose_game_audio_played = False
                     win_game = False
-                    world_data = reset_data()
+                    world_data = reset_level()
                     reset_data()
                     # Tải level mới khi ra khỏi màn hình chính
                     with open(f'Level/level{level}_data.csv', newline = '') as csvfile:

@@ -7,8 +7,9 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, type, x, y, scale):
         pygame.sprite.Sprite.__init__(self)
         # Cài đặt hình ảnh cho quái vật
+        self.type = type
         animation_types = ['Idle', 'Walk', 'Attack', 'Die', 'Hurt']
-        folder_path = f'Entity/{type}'
+        folder_path = f'Entity/{self.type}'
         self.update_time = pygame.time.get_ticks()
         self.action = 0
         self.frame_index = 0
@@ -27,7 +28,6 @@ class Enemy(pygame.sprite.Sprite):
         self.width = self.rect.width
         self.height = self.rect.height
         # Các biến khởi tạo
-        self.type = type
         if self.type == 'Skeleton':
             self.health = 100
             self.dame = 10
@@ -78,7 +78,7 @@ class Enemy(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
         if self.frame_index >= len(self.animation_list[self.action]):
-            if self.action == 3:
+            if self.action == 3: # Die
                 self.frame_index = len(self.animation_list[self.action]) - 1
             elif self.action == 4: # Hurt
                 self.update_action(0)
@@ -113,6 +113,8 @@ class Enemy(pygame.sprite.Sprite):
             # Trục x
             if tile[1].colliderect(self.collision_rect.x + dx, self.collision_rect.y, self.collision_rect.width, self.collision_rect.height):
                 dx = 0
+                self.direction *= -1
+                self.move_counter += 1
             # Trục y
             if tile[1].colliderect(self.collision_rect.x, self.collision_rect.y + dy, self.collision_rect.width, self.collision_rect.height):
                 if self.vel_y < 0:
@@ -120,12 +122,8 @@ class Enemy(pygame.sprite.Sprite):
                     dy = tile[1].bottom - self.collision_rect.top
                 elif self.vel_y >= 0:
                     self.vel_y = 0
-                    self.in_air = False
                     dy = tile[1].top - self.collision_rect.bottom
 
-        # Ngăn chặn đập đầu dô tường
-        if self.collision_rect.left + dx < 0 or self.collision_rect.right + dx > SCREEN_WIDTH:
-            dx = 0
         if self.rect.top > SCREEN_HEIGHT:
             self.health = 0
             dy = 0
@@ -164,7 +162,7 @@ class Enemy(pygame.sprite.Sprite):
                         self.attack = True
                         if self.attack == True:
                             if self.dame_cooldown == 0:
-                                player.health -= 10
+                                player.health -= self.dame
                                 self.dame_cooldown = 100
                                 if random.randint(1, 3) == 1:
                                     player.hurt = True
@@ -222,6 +220,23 @@ class Enemy(pygame.sprite.Sprite):
         self.update_animation()
         self.ai(player, screen_scroll, world)
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         # pygame.draw.rect(screen, 'Red', self.collision_rect, 1)
         # pygame.draw.rect(screen, 'Black', self.rect, 1)
-        # pygame.draw.rect(screen, 'Yellow', self.vision, 1)
+        pygame.draw.rect(screen, 'Yellow', self.vision, 1)
