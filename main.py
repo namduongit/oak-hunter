@@ -4,6 +4,7 @@ import csv
 import button
 from settings import *
 import Enemy
+
 pygame.init()
 pygame.mixer.init()
 
@@ -11,26 +12,20 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 surface = pygame.Surface((WIDTH_MAP, HEIGHT_MAP))
 logo_game = pygame.image.load('Map/Logo/logo_game.png').convert_alpha()
 pygame.display.set_icon(logo_game)
-pygame.display.set_caption("Spoce Skeleton Forest")
+pygame.display.set_caption("Oak Hunter")
+
 # Bộ đếm thời gian cho màn hình
 clock = pygame.time.Clock()
 
 # Cài đặt phông chữ ThaleahFat
 font = pygame.font.Font('Map/Font/ThaleahFat.ttf', 18)
-# Biến dùng để cuộn màn hình
-screen_scroll = 0
-bg_scroll = 0
-# Biến khởi tạo level và max level
-level = 1
-
 # Biến dùng để người chơi có thể nâng cấp
 speed_bullet = 0
-dame_bullet = 0
+dame_bullet = 1000
 health_bonus = 0
 coin_player = 0
 health_tile = 10
 bullet_cooldown = 0
-currrent_coins = 0
 # Biến dùng để chơi game
 home_game = True
 play_game = False
@@ -38,14 +33,16 @@ option_game = False
 exit_game = False
 # Biến dùng khi win game
 win_game = False
-# Biến dùng để chơi game
-next_complete = False
 # Biến dùng trong map editor
 current_tile = 0
 scroll = 0
 scroll_left = False
 scroll_right = False
 scroll_speed = 1
+# Biến dùng để cuộn màn hình
+screen_scroll = 0
+bg_scroll = 0
+level = 1
 
 # Back ground trong game
 img_1 = pygame.image.load('Map/Backgrounds/1.png').convert_alpha()
@@ -171,9 +168,7 @@ lose_game_audio.set_volume(0.3)
 # Tiếng thắng game
 win_game_audio = pygame.mixer.Sound('Audio/win.wav')
 win_game_audio.set_volume(0.3)
-# Tiếng click chuột
-mouse_click_audio = pygame.mixer.Sound('Audio/mouse_click.wav')
-play_audio = False # Dùng để phát tiếng khi click
+
 lose_game_audio_played = False # Dùng để check khi thua
 win_game_audio_played = False # Dùng để check khi thắng
 '''=================================================================================================='''
@@ -183,12 +178,8 @@ shop_group = pygame.sprite.Group()
 trap_group = pygame.sprite.Group()
 
 decoration_group = pygame.sprite.Group()
-coin_group = pygame.sprite.Group()
-lamp_group = pygame.sprite.Group()
-fence_group = pygame.sprite.Group()
-rock_group = pygame.sprite.Group()
-grass_group = pygame.sprite.Group()
 
+coin_group = pygame.sprite.Group()
 level_complete_group = pygame.sprite.Group()
 
 enemy_group = pygame.sprite.Group()
@@ -392,9 +383,6 @@ class Player(pygame.sprite.Sprite):
         self.update_animation()
         self.update()
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-        # pygame.draw.rect(screen, 'Red', self.collision_rect, 1)
-        # pygame.draw.rect(screen, 'Black', self.rect, 1)
-        # pygame.draw.rect(screen, 'Yellow', self.coin_collision, 1)
         for bullet in self.bullets:
             bullet.draw()
             bullet.update()
@@ -460,35 +448,24 @@ class Shop(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
         self.update_time = pygame.time.get_ticks()
 
-    def update_animation(self):
+    def draw(self):
         self.image = self.animation_list[self.frame_index]
         if pygame.time.get_ticks() - self.update_time > ANIMATION:
             self.frame_index += 1
             self.update_time = pygame.time.get_ticks()
             if self.frame_index >= len(self.animation_list):
                 self.frame_index = 0
-
-    def draw(self):
         self.rect.x += screen_scroll
-        self.update_animation()
         screen.blit(self.image, self.rect)
-        # pygame.draw.rect(screen, 'Black', self.rect, 1)
+
 
 class Decoration(pygame.sprite.Sprite):
-    def __init__(self, x, y, img):
+    def __init__(self, type, img,  x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = img
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-
-    def draw(self):
-        self.rect.x += screen_scroll
-        screen.blit(self.image, self.rect)
-
-class Fence(pygame.sprite.Sprite):
-    def __init__(self, type, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(f'Entity/Decoration/fence_{type}.png').convert_alpha()
+        if type != 1:
+            self.image = pygame.image.load(f'Entity/Decoration/{type}.png').convert_alpha()
+        else:
+            self.image = img
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
@@ -496,39 +473,6 @@ class Fence(pygame.sprite.Sprite):
         self.rect.x += screen_scroll
         screen.blit(self.image, self.rect)
 
-class Grass(pygame.sprite.Sprite):
-    def __init__(self,type, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(f'Entity/Decoration/grass_{type}.png').convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-    def draw(self):
-        self.rect.x += screen_scroll
-        screen.blit(self.image, self.rect)
-
-class Lamp(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load('Entity/Decoration/lamp.png').convert_alpha()
-        self.image = pygame.transform.scale(self.image, (int(self.image.get_width() * 1.5), int(self.image.get_height() * 1.5)))
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-    def draw(self):
-        self.rect.x += screen_scroll
-        screen.blit(self.image, self.rect)
-
-class Rock(pygame.sprite.Sprite):
-    def __init__(self,type, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(f'Entity/Decoration/rock_{type}.png').convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-    def draw(self):
-        self.rect.x += screen_scroll
-        screen.blit(self.image, self.rect)
 
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -545,9 +489,6 @@ class Coin(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
         self.update_time = pygame.time.get_ticks()
 
-    def update(self, screen_scroll):
-        self.rect.x += screen_scroll  # Di chuyển theo màn hình cuộn
-
     def draw(self):
         self.image = self.animation_list[self.frame_index]
         if pygame.time.get_ticks() - self.update_time > ANIMATION:
@@ -555,6 +496,7 @@ class Coin(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
             if self.frame_index >= len(self.animation_list):
                 self.frame_index = 0
+        self.rect.x += screen_scroll
         screen.blit(self.image, self.rect)
 
 class NextLevel(pygame.sprite.Sprite):
@@ -588,7 +530,7 @@ class Trap(pygame.sprite.Sprite):
         self.update_time = pygame.time.get_ticks()
         self.dame_cooldown = 0
 
-    def update_animation(self):
+    def draw(self):
         self.image = self.animation_list[self.frame_index]
         if pygame.time.get_ticks() - self.update_time > ANIMATION:
             self.frame_index += 1
@@ -597,12 +539,8 @@ class Trap(pygame.sprite.Sprite):
                 self.frame_index = 0
         if self.dame_cooldown > 0:
             self.dame_cooldown -= 1
-
-    def draw(self):
         self.rect.x += screen_scroll
-        self.update_animation()
         screen.blit(self.image, self.rect)
-        # pygame.draw.rect(screen, 'Black', self.rect, 1)
 
 
 ''' ----------------------- Dữ liệu thế giới ----------------------- '''
@@ -624,35 +562,35 @@ class World:
                     if (tile >= 0 and tile <= 4) or (tile >= 9 and tile <= 17) or (tile >= 19 and tile <= 20):
                         self.obstacle_list.append(tile_data)
                     elif tile == 22:
-                        rock = Rock(1, img_rect.x, img_rect.y)
-                        rock_group.add(rock)
+                        rock = Decoration('rock_1', img, img_rect.x, img_rect.y)
+                        decoration_group.add(rock)
                     elif tile == 23:
-                        rock = Rock(2, img_rect.x, img_rect.y)
-                        rock_group.add(rock)
+                        rock = Decoration('rock_2', img, img_rect.x, img_rect.y)
+                        decoration_group.add(rock)
                     elif tile == 24:
-                        rock = Rock(3, img_rect.x, img_rect.y)
-                        rock_group.add(rock)
+                        rock = Decoration('rock_3', img, img_rect.x, img_rect.y)
+                        decoration_group.add(rock)
                     # Grass
                     elif tile == 25:
-                        grass = Grass(1, img_rect.x, img_rect.y)
-                        grass_group.add(grass)
+                        grass = Decoration('grass_1', img, img_rect.x, img_rect.y)
+                        decoration_group.add(grass)
                     elif tile == 26:
-                        grass = Grass(2, img_rect.x, img_rect.y)
-                        grass_group.add(grass)
+                        grass = Decoration('grass_2', img, img_rect.x, img_rect.y)
+                        decoration_group.add(grass)
                     elif tile == 27:
-                        grass = Grass(3, img_rect.x, img_rect.y)
-                        grass_group.add(grass)
+                        grass = Decoration('grass_3', img, img_rect.x, img_rect.y)
+                        decoration_group.add(grass)
                     # Lamp
                     elif tile == 28:
-                        lamp = Lamp(img_rect.x, img_rect.y)
-                        lamp_group.add(lamp)
+                        lamp = Decoration('lamp', img, img_rect.x, img_rect.y)
+                        decoration_group.add(lamp)
                     # Fence
                     elif tile == 29:
-                        fence = Fence(1, img_rect.x, img_rect.y)
-                        fence_group.add(fence)
+                        fence = Decoration('fence_1', img, img_rect.x, img_rect.y)
+                        decoration_group.add(fence)
                     elif tile == 30:
-                        fence = Fence(2, img_rect.x, img_rect.y)
-                        fence_group.add(fence)
+                        fence = Decoration('fence_2', img, img_rect.x, img_rect.y)
+                        decoration_group.add(fence)
                     elif tile == 31: # Shop
                         shop = Shop(img_rect.x, img_rect.y)
                         shop_group.add(shop)
@@ -691,7 +629,7 @@ class World:
                         traps = Trap('small_wood', img_rect.x, img_rect.y)
                         trap_group.add(traps)
                     else:
-                        decoration = Decoration(img_rect.x, img_rect.y, img)
+                        decoration = Decoration(1, img, img_rect.x, img_rect.y)
                         decoration_group.add(decoration)
 
         return player
@@ -720,6 +658,22 @@ for i in range(len(img_list)):
 	if button_col == 7:
 		button_row += 1
 		button_col = 0
+
+# Tạo mảng data rỗng dùng để chứa dữ liệu thế giới
+world_data = []
+for row in range(ROWS):
+    r = [-1] * COLS
+    world_data.append(r)
+# Đọc dữ liệu lên mảng vừa tạo
+with open(f'Level/level{level}_data.csv', newline = '') as csvfile:
+    reader = csv.reader(csvfile, delimiter = ',')
+    for x, row in enumerate(reader):
+        for y, tile in enumerate(row):
+            world_data[x][y] = int(tile)
+
+
+
+
 # Hàm vẽ chữ
 def draw_text(text, font, color, x, y):
     # Transform string to img
@@ -744,11 +698,8 @@ def reset_level():
     return data
 
 def reset_data():
+    global coin_player
     decoration_group.empty()
-    fence_group.empty()
-    grass_group.empty()
-    lamp_group.empty()
-    rock_group.empty()
     shop_group.empty()
     coin_group.empty()
     enemy_group.empty()
@@ -765,47 +716,23 @@ def draw_enemy(player):
             else:
                 punch_audio.play()
 
-def draw_decoration():
+def draw_group(player):
     for decoration in decoration_group:
         decoration.draw()
-    for rock in rock_group:
-        rock.draw()
-    for grass in grass_group:
-        grass.draw()
-    for lamp in lamp_group:
-        lamp.draw()
-    for fence in fence_group:
-        fence.draw()
     for next_level in level_complete_group:
         next_level.draw()
-
-def draw_shop():
     for shop in shop_group:
         shop.draw()
-def draw_trap(player):
+    for coin in coin_group:
+        coin.draw()
     for trap in trap_group:
         trap.draw()
         if trap.rect.colliderect(player.coin_collision):
             if trap.dame_cooldown == 0:
                 player.health -= 10
                 trap.dame_cooldown = 20
-def draw_coin():
-    for coin in coin_group:
-        coin.draw()
 
-def bullet_enemy(player):
-    for bullet in player.bullets:
-        for enemy in enemy_group:
-            if bullet.rect.colliderect(enemy.collision_rect):
-                if enemy.health > 0:
-                    enemy.health -= player.dame + dame_bullet
-                    if enemy.health <= 0:
-                            skeleton_hurt_audio.play()
-                    if random.randint(1, 3) == 1:
-                        enemy.hurt = True
-                    player.bullets.remove(bullet)
-
-def health_chart(player):
+def draw_chart(player):
     screen.blit(empty_heath_bar, (10, 10))
     draw_text(f'x {coin_player}', font, WHITE, 15 + CoinBarPlayer.image.get_width(), 79)
     number_tiles = player.health // health_tile
@@ -816,10 +743,27 @@ def health_chart(player):
         if i == 10:
             step = 21
         screen.blit(chart_health, (76 + i * 16 + step, 33))
-
-def bullet_char(player):
     for i in range(player.bullet):
         screen.blit(bullet_image, (10 + i * 10, 100))
+
+
+
+def bullet_enemy(player):
+    for bullet in player.bullets:
+        for enemy in enemy_group:
+            if bullet.rect.colliderect(enemy.collision_rect):
+                if enemy.health > 0:
+                    enemy.health -= player.dame + dame_bullet
+                    if enemy.health <= 0:
+                            if enemy.type == 'Skeleton' or enemy.type == 'Bigger':
+                                skeleton_hurt_audio.play()
+                            elif enemy.type == 'Demon':
+                                demon_hurt_audio.play()
+                            else:
+                                boss_hurt_audio.play()
+                    if random.randint(1, 3) == 1:
+                        enemy.hurt = True
+                    player.bullets.remove(bullet)
 
 def check_enmy_alive():
     number_of_enemy = 0
@@ -870,7 +814,6 @@ def shop_collision(player):
             if cooldown_upgrade.draw(screen):
                 handle_upgrade("cooldown", player)
 
-
 def handle_upgrade(upgrade_type, player):
     """
     Xử lý logic nâng cấp dựa trên loại nâng cấp.
@@ -893,17 +836,6 @@ def handle_upgrade(upgrade_type, player):
         bullet_cooldown += 1
         coin_player -= 1
 
-# Tạo mảng data rỗng dùng để chứa dữ liệu thế giới
-world_data = []
-for row in range(ROWS):
-    r = [-1] * COLS
-    world_data.append(r)
-# Đọc dữ liệu lên mảng vừa tạo
-with open(f'Level/level{level}_data.csv', newline = '') as csvfile:
-    reader = csv.reader(csvfile, delimiter = ',')
-    for x, row in enumerate(reader):
-        for y, tile in enumerate(row):
-            world_data[x][y] = int(tile)
 
 world = World()
 player = world.process_data(world_data)
@@ -1073,7 +1005,6 @@ while running:
                 if restart_btn.draw(screen):
                     level = 1
                     bg_scroll = 0
-                    play_audio = False
                     win_game_audio_played = False
                     lose_game_audio_played = False
                     win_game = False
@@ -1092,16 +1023,12 @@ while running:
                 if player:
                     draw_bg()
                     world.draw()
-                    draw_decoration()
-                    draw_shop()
-                    draw_coin()
-                    coin_group.update(screen_scroll)
+                    draw_group(player)
+                    # coin_group.update(screen_scroll)
                     CoinBarPlayer.draw()
                     draw_enemy(player)
-                    health_chart(player)
-                    bullet_char(player)
+                    draw_chart(player)
                     bullet_enemy(player)
-                    draw_trap(player)
                     player.draw()
                     screen_scroll = player.move()
                     bg_scroll -= screen_scroll
@@ -1129,7 +1056,7 @@ while running:
                         if event.key == pygame.K_r:
                             player.rechange = True
                         if event.key == pygame.K_SPACE:
-                            if player.shoot_cooldown == 0:
+                            if player.shoot_cooldown == 0 and player.bullet > 0:
                                 player.shoot = True
                                 shooted.play()
                         if event.key == pygame.K_LCTRL:
@@ -1203,7 +1130,6 @@ while running:
                     if restart_btn.draw(screen):
                         # Không reset level để được chơi lại màn đó
                         bg_scroll = 0
-                        play_audio = False
                         win_game_audio_played = False
                         lose_game_audio_played = False
                         win_game = False
