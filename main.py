@@ -21,7 +21,7 @@ clock = pygame.time.Clock()
 font = pygame.font.Font('Map/Font/ThaleahFat.ttf', 18)
 # Biến dùng để người chơi có thể nâng cấp
 speed_bullet = 0
-dame_bullet = 1000
+dame_bullet = 0
 health_bonus = 0
 coin_player = 0
 health_tile = 10
