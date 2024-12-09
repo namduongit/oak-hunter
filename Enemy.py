@@ -239,4 +239,4 @@ class Enemy(pygame.sprite.Sprite):
 
         # pygame.draw.rect(screen, 'Red', self.collision_rect, 1)
         # pygame.draw.rect(screen, 'Black', self.rect, 1)
-        pygame.draw.rect(screen, 'Yellow', self.vision, 1)
+        # pygame.draw.rect(screen, 'Yellow', self.vision, 1)
