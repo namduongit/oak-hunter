@@ -404,7 +404,7 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
         screen.blit(self.image, self.rect)
-        pygame.draw.rect(screen, 'Black', self.rect, 1)
+        # pygame.draw.rect(screen, 'Black', self.rect, 1)
 
 class CoinBar(pygame.sprite.Sprite):
     def __init__(self, x, y):
